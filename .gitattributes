@@ -1,0 +1,23 @@
+* text=auto eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sh text eol=lf
+*.c text eol=lf
+*.h text eol=lf
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf
+*.cmd text eol=crlf
+*.gba -text -diff
+*.gb -text -diff
+*.gbc -text -diff
+*.wasm -text -diff
+*.png -text
+*.jpg -text
+*.jpeg -text
+*.gif -text
+*.ico -text

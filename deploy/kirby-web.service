@@ -1,0 +1,35 @@
+[Unit]
+Description=Kirby GBA netplay server (behind Caddy)
+After=network.target
+
+[Service]
+Type=exec
+User=kirby-web
+Group=kirby-web
+WorkingDirectory=/opt/kirby-web
+# Use the absolute path of Node.js 22+ on this host.
+ExecStart=/usr/bin/node /opt/kirby-web/server.mjs
+Environment=NODE_ENV=production PUBLIC_MODE=true HOST=127.0.0.1 PORT=8765
+Environment=ROM_DIRECTORY=/srv/kirby-web/roms
+Environment=ACCESS_PASSWORD_FILE=%d/access-password
+EnvironmentFile=/etc/kirby-web/site.env
+LoadCredential=access-password:/etc/kirby-web/access-password.txt
+Restart=on-failure
+RestartSec=5s
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+CapabilityBoundingSet=
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+TasksMax=64
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target

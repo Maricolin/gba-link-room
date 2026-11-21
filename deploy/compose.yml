@@ -1,0 +1,93 @@
+x-logging: &rotating-logs
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  web:
+    build:
+      context: ..
+    restart: unless-stopped
+    init: true
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    mem_limit: 256m
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m,mode=1777
+    environment:
+      PUBLIC_MODE: "true"
+      PUBLIC_ORIGIN: "https://${SITE_DOMAIN:?set SITE_DOMAIN in deploy/.env}"
+      HOST: 0.0.0.0
+      PORT: "8765"
+      GAME_CATALOG_PATH: /app/config/games.json
+      ROM_DIRECTORY: /roms
+      ACCESS_PASSWORD_FILE: /run/secrets/access_password
+      MAX_CONNECTIONS: "${MAX_CONNECTIONS:-160}"
+      MAX_TCP_PER_IP: "${MAX_TCP_PER_IP:-128}"
+      MAX_WS_PER_IP: "${MAX_WS_PER_IP:-80}"
+      WS_READ_TIMEOUT_MS: "${WS_READ_TIMEOUT_MS:-5000}"
+      INPUT_DELAY_FRAMES: "${INPUT_DELAY_FRAMES:-6}"
+    expose:
+      - "8765"
+    volumes:
+      - type: bind
+        source: ./roms
+        target: /roms
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./games.json
+        target: /app/config/games.json
+        read_only: true
+        bind:
+          create_host_path: false
+    secrets:
+      - access_password
+    networks:
+      - backend
+    logging: *rotating-logs
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      SITE_DOMAIN: "${SITE_DOMAIN:?set SITE_DOMAIN in deploy/.env}"
+      WEB_UPSTREAM: web:8765
+    ports:
+      - "80:80/tcp"
+      - "443:443/tcp"
+      # Optional HTTP/3: also enable h3 in Caddyfile and allow UDP/443 at the edge.
+      # - "443:443/udp"
+    volumes:
+      - type: bind
+        source: ./Caddyfile
+        target: /etc/caddy/Caddyfile
+        read_only: true
+        bind:
+          create_host_path: false
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - backend
+      - default
+    logging: *rotating-logs
+
+secrets:
+  access_password:
+    # Compose implements file secrets via a read-only bind; set mode/owner on the host.
+    file: ./secrets/access-password.txt
+
+networks:
+  backend:
+    internal: true
+  default: {}
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,39 @@
+{
+	servers {
+		# Add h3 only when publishing UDP/443.
+		protocols h1 h2
+		timeouts {
+			read_header 5s
+			read_body 15s
+			idle 2m
+		}
+	}
+	# Keep operational logs, but omit per-request error/access logs with URLs.
+	log default {
+		exclude http.log.access http.log.error
+	}
+}
+
+{$SITE_DOMAIN} {
+	# Production HTTPS only. No includeSubDomains or preload.
+	header Strict-Transport-Security "max-age=86400"
+
+	@compressible {
+		not path *.wasm /game.gba /api/games/*/rom /ws /api/session
+	}
+	encode @compressible zstd gzip
+
+	# HTTP upstream preserves Host. Upgrade to WebSocket is automatic.
+	reverse_proxy {$WEB_UPSTREAM:127.0.0.1:8765} {
+		# Do not pass or consume client-supplied IP assertions.
+		header_up -Forwarded
+		header_up -X-Forwarded-For
+		header_up -X-Real-IP
+		# Leave stream_timeout unset; allow existing games time to finish on reload.
+		stream_close_delay 5m
+		transport http {
+			dial_timeout 3s
+			response_header_timeout 15s
+		}
+	}
+}

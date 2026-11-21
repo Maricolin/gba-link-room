@@ -1,0 +1,25 @@
+{
+  "name": "kirby-lan-netplay",
+  "version": "1.4.0",
+  "private": true,
+  "type": "module",
+  "description": "Private GBA browser netplay with LAN and authenticated HTTPS/WSS deployment",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "start:lan": "node scripts/launcher.mjs",
+    "check": "node scripts/check.mjs",
+    "games:check": "node scripts/catalog.mjs",
+    "roms:import": "node scripts/import-rom-directory.mjs ROM",
+    "test:roms": "node test/browser/rom-library.cjs",
+    "probe:roms": "node scripts/probe-roms.cjs --manifest config/games.json",
+    "test": "node scripts/test.mjs",
+    "test:browser": "node test/browser/features.cjs && node test/browser/multigame.cjs && node test/browser/public.cjs",
+    "test:smoke": "node test/browser/smoke.cjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.65.1"
+  }
+}

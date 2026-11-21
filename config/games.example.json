@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "defaultGameId": "kirby-amazing-mirror-cn",
+  "games": [
+    {
+      "id": "kirby-amazing-mirror-cn",
+      "title": "星之卡比 · 镜之迷宫（中文版）",
+      "rom": "kirby-amazing-mirror-cn.gba",
+      "players": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "defaultPlayers": 2,
+      "link": "cable",
+      "compatibility": "core-tested",
+      "description": "1–4 台 GBA 通信线联机。已通过核心启动与链路测试，完整游戏流程仍需人工验收。",
+      "instructions": "每位玩家按 Start 进入游戏菜单，再按游戏内说明选择多人／通信模式。网页建房只连接模拟通信线，不会代替你操作菜单。",
+      "labels": {
+        "a": "A / 跳跃",
+        "b": "B / 吸入"
+      }
+    },
+    {
+      "id": "example-link-demo",
+      "title": "自备通信线游戏（未安装示例）",
+      "rom": "example-link-demo.gba",
+      "enabled": false,
+      "players": [
+        1,
+        2
+      ],
+      "defaultPlayers": 2,
+      "link": "cable",
+      "compatibility": "untested",
+      "description": "将自备 ROM 放入目录并填写真实信息后再启用。",
+      "instructions": "请根据该游戏自身的通信线联机流程操作。",
+      "labels": {
+        "a": "A / 确认",
+        "b": "B / 返回"
+      }
+    }
+  ]
+}
