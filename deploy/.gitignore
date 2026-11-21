@@ -2,3 +2,5 @@
 /games.json
 /roms/
 /secrets/
+/.deploy.lock
+/.prepare-*/

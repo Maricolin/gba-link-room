@@ -18,7 +18,126 @@
 
 下列命令是供部署者在目标主机执行的示例，不会自动修改防火墙。两种方式任选一种，不同时启动。启动前先阅读 [安全边界](<SECURITY.md>)。
 
-## 2. Docker Compose（推荐）
+## 2. 一键部署（推荐入口）
+
+脚本为 [deploy/deploy.sh](<../deploy/deploy.sh>)，初始化逻辑为 [scripts/deploy-prepare.mjs](<../scripts/deploy-prepare.mjs>)。从下面的首次部署到日常更新均使用同一个项目名 **gba-link-room**。适用于专门承载本站的原生 Linux 服务器、本机标准 rootful Docker Engine；rootless、userns-remap、Docker Desktop、远端 Docker 和已有多站点反代请改用后面的手工方案。部署会占用 TCP 80/443，已有网站不能直接套用。
+
+### 2.1 准备服务器与域名
+
+1. 准备 Linux 服务器和有权限使用的域名，完成上节 DNS 与 TCP 80/443 配置。
+2. 安装 Git、curl、CA 证书与 util-linux（提供 flock），并按 [Docker 官方安装文档](<https://docs.docker.com/engine/install/>) 安装 Docker Engine 和 Compose 插件。脚本不自动安装系统软件或改动防火墙。
+3. 使用可访问本私有仓库的账号或只读部署密钥克隆代码；不要把令牌写进克隆 URL。通过 Git 的凭据机制或 SSH 完成认证。
+4. 目标机需能拉取 node:22-bookworm-slim 和 caddy:2-alpine；不需要在宿主安装 Node.js、npm 或编译工具链。准备阶段临时复制启用的 ROM 并计算哈希，请预留源 ROM 总大小数倍的空闲空间及 Docker 镜像空间。
+
+~~~bash
+git clone https://github.com/Maricolin/gba-link-room.git
+cd gba-link-room
+sudo docker info
+sudo docker compose -p gba-link-room version
+~~~
+
+首次使用前核对目录中的代码与 ROM。此私有快照的运行 ROM 已在 data/roms 中；如果使用不含 ROM 的源码包，请先放入自己有权使用的 ROM，或通过 --rom-source 指定含同样相对路径的源目录。只部署部分游戏时，先创建 deploy/games.json 并将缺失游戏设为 enabled:false，默认游戏必须保持启用。
+
+### 2.2 一条命令部署
+
+把下面的示例域名替换为实际域名，从项目根目录执行：
+
+~~~bash
+sudo bash deploy/deploy.sh --domain play.example.com
+~~~
+
+依次完成：检查本机 Docker/Compose → 拉取 Node 准备镜像 → 初始化部署文件 → 校验全部启用 ROM、目录及公网配置 → 构建 web、拉取 Caddy → 以容器实际用户检查文件权限 → 校验 Caddy 配置 → 重建服务并等待 web 健康 → 通过可信 TLS 检查域名 /healthz。只有最后检查通过，默认流程才返回成功。Caddy 按配置自动处理证书；DNS、端口或证书检查失败时脚本非零退出，保留容器及文件用于排障。
+
+首次生成的部署状态：
+
+| 路径 | 内容与重复执行规则 |
+| --- | --- |
+| deploy/.env | 域名与限额；缺失才创建，已有值不覆盖 |
+| deploy/games.json | 从 config/games.json 初始化；以后以部署副本为准 |
+| deploy/roms/ | 只补齐已启用游戏缺失的 ROM，保留子目录与已有文件 |
+| deploy/secrets/access-password.txt | 64 位十六进制随机口令；不打印、不覆盖已有内容 |
+| Docker 命名卷 gba-link-room_caddy_data / gba-link-room_caddy_config | Caddy 证书与状态；脚本不删除卷 |
+
+脚本将口令文件权限收紧为 0600、属主设为 1000:1000，以匹配应用容器的 node 用户；不递归修改整个仓库。新建 secrets 目录为 0700。已有空口令、无效配置、路径符号链接、ROM 缺失或参数域名与已有域名冲突时会停止，避免用默认值掩盖问题。deploy/.env 只接受样例中列出的不带引号 KEY=value；不执行其中的 shell 内容。
+
+口令由管理员在目标服务器私密读取并存入密码管理器，再私密交付好友；不要粘贴到共享日志或 URL。口令路径为 deploy/secrets/access-password.txt，读取需要 sudo 权限。脚本输出中不会显示口令。
+
+### 2.3 可选参数
+
+~~~bash
+# 先生成文件、检查 Compose 配置，暂不构建/启动应用；仍需要本机 Docker 并拉取准备镜像。
+sudo bash deploy/deploy.sh --domain play.example.com --prepare-only
+
+# 从另外的 ROM 根目录补齐缺失文件。
+sudo bash deploy/deploy.sh --domain play.example.com --rom-source /srv/my-gba-roms
+
+# 网络较慢时：容器启动、后续 HTTPS 重试各有 300 秒预算；镜像拉取/构建不计入该预算。
+sudo bash deploy/deploy.sh --timeout 300
+
+# 只在排障时跳过域名 HTTPS 检查；容器健康仍须通过，不代表公网部署验收成功。
+sudo bash deploy/deploy.sh --skip-https-check
+~~~
+
+正常重复执行可不带 --domain，读取已有 deploy/.env。若原 ROM 源目录已移走而 deploy/roms 完整，则复用部署 ROM；缺文件仍会报错。已有 ROM 不随代码更新自动替换；换版本必须先备份、人工替换对应运行文件并核对游戏目录和存档。
+
+每次完整运行都会重建 web/caddy 容器，包括让替换后的 file secret 重新绑定，**会中断当前对局并清空服务端内存房间/会话**。重复执行保护的是配置与游戏文件，不是在线连接。不要在玩家游戏过程中运行。
+
+### 2.4 验收、更新与回退
+
+脚本从服务器自身检查 HTTPS，仍需在另一条网络（如手机蜂窝网络）实际打开站点，检查证书、口令登录、两人建房/加入、游戏内通信、断线与电池存档导出。容器健康和 /healthz 通过不等于完整玩法通过。
+
+查看状态与日志（项目根目录执行，始终带相同项目名）：
+
+~~~bash
+sudo docker compose -p gba-link-room --env-file deploy/.env -f deploy/compose.yml ps
+sudo docker compose -p gba-link-room --env-file deploy/.env -f deploy/compose.yml logs --tail=100 web caddy
+~~~
+
+更新前让玩家导出存档。将部署状态备份到项目外的受保护目录，并另外按本机备份规范备份 Caddy 数据卷；备份含口令，不可上传。示例假设项目位于 /srv/gba-link-room，备份写入 /var/backups：
+
+~~~bash
+cd /srv/gba-link-room
+sudo install -d -m 0700 /var/backups/gba-link-room
+sudo sh -c 'umask 077; tar -czf "/var/backups/gba-link-room/deploy-$(date +%Y%m%d-%H%M%S).tar.gz" deploy/.env deploy/games.json deploy/roms deploy/secrets'
+git rev-parse HEAD
+# 记下上一行的旧提交，保持工作区干净后快进更新。
+git pull --ff-only
+sudo bash deploy/deploy.sh
+~~~
+
+若更新失败，脚本不会自动删数据或伪称回滚。确认没有未保存的代码修改后，可用 git switch --detach <记录的旧提交> 切回已知版本，再运行 sudo bash deploy/deploy.sh。旧提交若尚无脚本则按手工 Compose 流程构建/启动。代码回退不回退部署配置；若修改了配置/ROM，应从相应备份按需恢复。勿使用强制 reset 清除用户改动。
+
+暂时停止但保留容器/卷：
+
+~~~bash
+sudo docker compose -p gba-link-room --env-file deploy/.env -f deploy/compose.yml stop
+~~~
+
+卸载容器和网络、保留证书卷及宿主部署文件：
+
+~~~bash
+sudo docker compose -p gba-link-room --env-file deploy/.env -f deploy/compose.yml down
+~~~
+
+不要加 -v，也不要直接删除 deploy/secrets、deploy/roms 或证书卷。若从先前手工部署迁移，先用 docker compose ls 查明原项目名；旧项目可能名为 deploy，需先停止原项目并安排其证书卷迁移。不要同时启动两个项目抢占 80/443。
+
+### 2.5 常见故障
+
+| 现象 | 处理 |
+| --- | --- |
+| 无法拉取镜像或构建失败 | 检查目标机到容器仓库的网络和 Docker 日志；已有部署文件保留，修复后重跑 |
+| 端口已占用 | 检查宿主服务及 docker ps；不要让脚本擅自停止别人的站点 |
+| 缺 ROM 或目录无效 | 检查 deploy/games.json 启用项、相对路径与 --rom-source；不要清空配置来绕过 |
+| secret/挂载权限失败 | 确认原生 rootful Docker，无 userns-remap；SELinux 等额外策略按宿主规则处理，勿改为全局可读 |
+| HTTPS 检查超时 | 检查 A/AAAA、DNS 生效、TCP 80/443、安全组、防火墙和 caddy 日志；不要关闭 TLS 验证 |
+| 域名参数冲突 | 先备份并人工编辑 deploy/.env，再重跑；更换域名也会影响浏览器存档来源 |
+| 提示重复部署进程 | 等前一个脚本结束；锁由进程自动释放，锁文件存在不表示仍在运行 |
+
+2026-11-21 验证：Bash 语法与帮助入口、Compose 离线 config 解析通过；Windows 完整60项测试中58项通过、2项因平台条件跳过；另在 root Linux 下运行6项部署准备测试及1项 Docker/curl 桩流程测试，7项通过。桩测试覆盖执行顺序与失败退出，不证明真实 bind 挂载、UID 权限、容器构建或 TLS。当前开发机 Docker 引擎未启动，完整容器启动、真实证书签发及公网部署仍需在目标服务器验收。
+
+## 3. Docker Compose 手工部署
+
+以下为手工等价流程。新部署统一使用项目名 gba-link-room；若已用一键脚本初始化，请直接复用文件，不要再复制覆盖。
 
 需要 Linux Docker Engine 与 Docker Compose v2+，推荐较新版本。使用项目根目录文件；只需构建运行镜像，不需要 npm 安装或重新编译 WASM。
 
@@ -41,10 +160,10 @@ chmod 600 secrets/access-password.txt
 # 标准 Linux Docker（不使用 UID 重映射）中，官方 Node 镜像的 node 用户 UID/GID 为 1000。
 sudo chown 1000:1000 secrets/access-password.txt
 
-docker compose config --quiet
-docker compose up -d --build
-docker compose ps
-docker compose logs --tail=80 web caddy
+docker compose -p gba-link-room config --quiet
+docker compose -p gba-link-room up -d --build
+docker compose -p gba-link-room ps
+docker compose -p gba-link-room logs --tail=80 web caddy
 ~~~
 
 Compose 环境从 [样例](<../.env.example>) 复制；不要在 shell 导出冲突的 `SITE_DOMAIN`。Caddy 站点与 Node 的 `PUBLIC_ORIGIN=https://<域名>` 用同一个变量生成，生产 Origin 必须严格匹配，不能有尾斜杠。Compose 把 `deploy/games.json` 只读挂载到 `GAME_CATALOG_PATH=/app/config/games.json`，把 `deploy/roms/` 只读挂载到 `ROM_DIRECTORY=/roms`。ROM 文件名必须与目录中相对路径一致；随附配置使用 `kirby-amazing-mirror-cn.gba`，不是 `game.gba`。目录最多 64 项；每个启用游戏的 ROM 都必须存在、可读且是 1 字节至 32 MiB 的普通文件，否则服务启动失败。ROM 流式读取，Node 不常驻全部 ROM 内容。安装和修改游戏见 [添加自备游戏](<ADDING_GAMES.md>)；不要提交 ROM 或部署私有目录。通过密码管理器等私密方式向好友交付生成的口令，不要把它放进 URL、聊天记录、镜像、环境样例或代码库。
@@ -52,12 +171,12 @@ Compose 环境从 [样例](<../.env.example>) 复制；不要在 shell 导出冲
 Compose 文件型 secret 是**只读绑定**，不是加密的 Swarm secret；文件属主和模式取自宿主，不能靠 Compose 的 secret `uid/gid/mode` 改写。使用 rootless、userns-remap、SELinux、Docker Desktop 或远端 Engine 时，按目标引擎的实际 UID 映射、挂载与访问规则检查权限，不要通过改成全局可读来绕过。核对文件是否存在并可读时不输出内容：
 
 ~~~bash
-docker compose run --rm --no-deps web node -e 'const fs=require("node:fs"); for (const p of [process.env.ACCESS_PASSWORD_FILE,process.env.GAME_CATALOG_PATH]) fs.accessSync(p,fs.constants.R_OK); fs.accessSync(process.env.ROM_DIRECTORY,fs.constants.R_OK | fs.constants.X_OK)'
+docker compose -p gba-link-room run --rm --no-deps web node -e 'const fs=require("node:fs"); for (const p of [process.env.ACCESS_PASSWORD_FILE,process.env.GAME_CATALOG_PATH]) fs.accessSync(p,fs.constants.R_OK); fs.accessSync(process.env.ROM_DIRECTORY,fs.constants.R_OK | fs.constants.X_OK)'
 ~~~
 
-[Compose](<../deploy/compose.yml>) 只让 Node 加入内部后端网络，不映射 8765；Caddy 同时连接后端与有出网能力的默认网络。Node 使用非 root 用户、只读根文件系统、无附加 capabilities 和有限 tmpfs、进程数及内存；不要把不可信容器接到后端网络。Caddy 的数据和配置卷在容器重建后保留，含证书与私钥，勿执行 `docker compose down -v` 作为常规操作。默认 Docker 两服务的本地日志均轮转，Caddy 不开启请求访问日志；证书或启动故障仍应检查运维日志。短期 HSTS（1 天，不含子域名、无 preload）仅用于生产 HTTPS 模板。
+[Compose](<../deploy/compose.yml>) 只让 Node 加入内部后端网络，不映射 8765；Caddy 同时连接后端与有出网能力的默认网络。Node 使用非 root 用户、只读根文件系统、无附加 capabilities 和有限 tmpfs、进程数及内存；不要把不可信容器接到后端网络。Caddy 的数据和配置卷在容器重建后保留，含证书与私钥，勿执行 `docker compose -p gba-link-room down -v` 作为常规操作。默认 Docker 两服务的本地日志均轮转，Caddy 不开启请求访问日志；证书或启动故障仍应检查运维日志。短期 HSTS（1 天，不含子域名、无 preload）仅用于生产 HTTPS 模板。
 
-## 3. 不用 Docker：同机 systemd + Caddy
+## 4. 不用 Docker：同机 systemd + Caddy
 
 需要 Linux、支持 `LoadCredential=` 的 systemd（建议 247+）、Node.js 22+ 和 Caddy 2。示例假定 Linux 发行版的 Caddy 服务读取 `/etc/caddy/Caddyfile`，其 unit 名为 `caddy.service`。先确认本机 Caddy 没有正在使用的其他站点；有其他站点时，应人工合并站点和全局配置，下面的覆盖命令不适用。
 
@@ -125,15 +244,15 @@ sudo systemctl restart caddy
 sudo systemctl status kirby-web caddy
 ~~~
 
-## 4. 从 1.2 升级到 1.3
+## 5. 从 1.2 升级到 1.3
 
 升级会中断对局，先让玩家导出电池存档。保留原站点域名、访问口令和原 ROM 字节；后端内存房间不会迁移。
 
-- **Compose：**更新程序后，在 `deploy/` 内把旧 `roms/game.gba` 改名为 `roms/kirby-amazing-mirror-cn.gba`（若目标已存在，先核对是否是同一份 ROM，勿覆盖）。首次创建 `games.json` 用 `cp ../config/games.json games.json`，已有自定义目录则不要覆盖。删除自定义配置中遗留的 `ROM_PATH`；运行 `docker compose config --quiet` 和 `docker compose up -d --build --force-recreate`。
+- **Compose：**更新程序后，在 `deploy/` 内把旧 `roms/game.gba` 改名为 `roms/kirby-amazing-mirror-cn.gba`（若目标已存在，先核对是否是同一份 ROM，勿覆盖）。首次创建 `games.json` 用 `cp ../config/games.json games.json`，已有自定义目录则不要覆盖。删除自定义配置中遗留的 `ROM_PATH`；运行 `docker compose -p gba-link-room config --quiet` 和 `docker compose -p gba-link-room up -d --build --force-recreate`。
 - **systemd：**安装新版文件和 unit，按上述目录布局安装原 ROM，确认 `site.env` 没有旧 `ROM_PATH`，然后 `sudo systemctl daemon-reload`、`sudo systemctl restart kirby-web`。若暂需继续单 ROM 兼容模式，可设置 `ROM_PATH=/绝对路径/旧文件.gba`，同时不设置 `GAME_CATALOG_PATH`；这会使用单 ROM 而不读取多游戏目录。新版 Compose 模板不使用此兼容模式。
 - **浏览器存档：**存档保留在原浏览器。在同一站点、浏览器、昵称、默认卡比游戏和相同 ROM SHA-256 下，旧存档可迁移到新版按游戏分隔的存档；升级后检查旧进度。如更换站点或设备、自动迁移未命中，使用升级前导出的 `.sav` 在正确游戏里手动导入。只改文件名不会改变 ROM 哈希。
 
-## 5. 限额、验收与维护
+## 6. 限额、验收与维护
 
 | 配置 | 反代示例值 | 用途 |
 | --- | ---: | --- |
@@ -148,6 +267,6 @@ Node 不信任客户端提供的 `X-Forwarded-For`；同一个 Caddy 后的用�
 1. 在另一条网络（如手机蜂窝数据）访问自己的 HTTPS 域名，确认有效证书和页面，及 `/healthz` 匿名请求返回 `{"ok":true}`。后端直查时也要传固定 Host；Compose 的健康检查已处理。
 2. 未登录时 `/api/info`、`/api/games`、`/api/games/kirby-amazing-mirror-cn/rom` 和兼容入口 `/game.gba` 应拒绝，匿名 `/ws` 不应成功升级；登录后在浏览器确认同源 WSS 成功及 Cookie 属性。注销后验证需要重新登录。不要把浏览器网络记录原样共享。
 3. 以两个真实网络的浏览器进行创建、加入、实际游戏内通信、断线重进及存档导出；再试目标人数与设备。观察延迟、抖动、限额和容量，不因健康检查通过而判定联机完成。
-4. 更新时先让玩家导出存档，备份部署配置与受保护的证书数据，再更新 Node/Caddy 补丁镜像；Compose 可先 `docker compose pull caddy`、`docker compose build --pull web`，再 `docker compose up -d` 并复验。更换密钥时重新创建 web 容器或重启 systemd unit，旧会话失效，房间丢失；如果通过替换文件操作更换 Docker secret，强制重建 web 以重新绑定。
+4. 更新时先让玩家导出存档，备份部署配置与受保护的证书数据，再更新 Node/Caddy 补丁镜像；Compose 可先 `docker compose -p gba-link-room pull caddy`、`docker compose -p gba-link-room build --pull web`，再 `docker compose -p gba-link-room up -d` 并复验。更换密钥时重新创建 web 容器或重启 systemd unit，旧会话失效，房间丢失；如果通过替换文件操作更换 Docker secret，强制重建 web 以重新绑定。
 
 本模板没有实际公网部署测试，也没有完成依赖/镜像安全扫描；这些是上线前检查项，不是已通过的验收结果。

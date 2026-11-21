@@ -103,6 +103,8 @@ vendor/、reference/         上游源代码、原始参考与许可
 
 ## 公网部署
 
+已安装 Docker Engine 和 Compose 的原生 Linux 服务器可执行 `sudo bash deploy/deploy.sh --domain play.example.com`（换成实际域名）。脚本初始化部署目录与随机访问口令、校验 ROM/权限、构建容器并检查 HTTPS；重复运行保留已有配置和 ROM，但会重建服务并中断对局。首次准备、更新、备份及排障见 [一键部署流程](<docs/DEPLOYMENT.md#2-一键部署推荐入口>)。
+
 推荐「浏览器 HTTPS/WSS → Caddy → 内部 Node 服务」。按 [部署指南](<docs/DEPLOYMENT.md>) 配置域名、随机访问口令、部署游戏目录及只读 ROM 目录，再启动 Compose；模板只发布 TCP 80/443，不直接发布 Node 8765。
 
 公网适合少量可信好友。确认帧要等待所有人的输入，延迟抖动和最慢设备会影响全房间，不承诺公网60 FPS。房间、聊天和会话保存在单进程内存中，不能仅增加副本数量就完成负载均衡。
