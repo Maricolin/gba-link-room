@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MPL-2.0 */
 /* MPL-2.0. SIO MULTI ping-pong adapted from
  * tangobattle/mgba-rollback/src/testrom.rs (ec6c1364...). */
 module.exports=function build({tone=false}={}){

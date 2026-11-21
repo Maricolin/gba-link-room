@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: MPL-2.0 */
 /* MPL-2.0. Cooperative link scheduling adapted from tangobattle/mgba-rollback
  * src/lib.rs and mgba-rs/src/sio.rs. See THIRD_PARTY.md. */
 #include <stdlib.h>

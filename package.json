@@ -2,6 +2,7 @@
   "name": "kirby-lan-netplay",
   "version": "1.4.0",
   "private": true,
+  "license": "MPL-2.0",
   "type": "module",
   "description": "Private GBA browser netplay with LAN and authenticated HTTPS/WSS deployment",
   "engines": {
@@ -11,6 +12,7 @@
     "start": "node server.mjs",
     "start:lan": "node scripts/launcher.mjs",
     "check": "node scripts/check.mjs",
+    "licenses:check": "node scripts/generate-notices.mjs --check",
     "games:check": "node scripts/catalog.mjs",
     "roms:import": "node scripts/import-rom-directory.mjs ROM",
     "test:roms": "node test/browser/rom-library.cjs",

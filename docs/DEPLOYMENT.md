@@ -8,6 +8,8 @@
 
 当前默认目录已登记卡比和用户ROM目录导入的8个版本。部署时必须复制所有已启用项对应的ROM及 imported/ 相对结构；若只准备一部分，请先在部署使用的 games.json 中将缺失项 enabled:false，默认项不能停用。不要只复制卡比文件却保留其他8项启用。
 
+上线前还需阅读 [许可与分发指引](<LICENSING.md>)：页面向浏览器发送JS/WASM时，相关接收者应能合理取得匹配的MPL覆盖源码。镜像保留许可材料和网页归属入口，不会自动提供对应源码包；私有仓库须对相应接收者实际开放访问，或另行提供不含ROM/密钥的源码包。
+
 ## 1. 域名、IP 与端口
 
 1. 选一台有可达公网 IP 的 Linux 主机，或确认自家网络不是无法入站转发的 CGNAT。家用路由器需将 TCP 80/443 转发到 Caddy 主机；云主机需同时核对安全组和防火墙。公网游戏入口只用 TCP 443，以及 TCP 80（HTTP 跳转及 ACME 验证）；SSH 如需开放 TCP 22，限可信来源，优先走管理 VPN。
@@ -65,7 +67,10 @@ docker compose run --rm --no-deps web node -e 'const fs=require("node:fs"); for 
 node --version
 sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin kirby-web
 sudo install -d -o root -g root -m 0755 /opt/kirby-web
-sudo install -m 0644 server.mjs package.json LICENSE THIRD_PARTY.md /opt/kirby-web/
+sudo install -m 0644 server.mjs package.json LICENSE NOTICE THIRD_PARTY.md /opt/kirby-web/
+sudo cp -R licenses /opt/kirby-web/
+sudo install -d -m 0755 /opt/kirby-web/docs
+sudo install -m 0644 docs/LICENSING.md /opt/kirby-web/docs/LICENSING.md
 sudo cp -R src public config /opt/kirby-web/
 sudo chown -R root:root /opt/kirby-web
 sudo chmod -R a=rX,u+w /opt/kirby-web

@@ -3,7 +3,9 @@ FROM node:22-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=8765
 
-COPY server.mjs package.json LICENSE THIRD_PARTY.md ./
+COPY server.mjs package.json LICENSE NOTICE THIRD_PARTY.md ./
+COPY licenses/ ./licenses/
+COPY docs/LICENSING.md ./docs/LICENSING.md
 COPY src/server/ ./src/server/
 COPY config/games.json ./config/games.json
 COPY public/ ./public/

@@ -1,0 +1,45 @@
+GBA Link Room — source and attribution notice
+
+Project-maintained code follows the root Mozilla Public License 2.0,
+except files carrying another original license or identified exclusions.
+Third-party ownership, notices and licenses are not replaced by this notice.
+
+Core and adapted source:
+- mGBA by Jeffrey Pfau and contributors; Mozilla Public License 2.0.
+  Upstream https://github.com/mgba-emu/mgba
+  Fork used https://github.com/tangobattle/mgba
+  Source revision 81067250ed62f206737b96297fd7693c5295101d.
+- tangobattle/mgba-rollback; Mozilla Public License 2.0.
+  Reference revision ec6c1364ef02ba2738664bc73999ca19f92cdfd8.
+  Link scheduling and SIO test ROM adapted in native/link.c and test/sio-rom.cjs.
+- tangobattle/mgba-rs; Mozilla Public License 2.0.
+  Cooperative SIO user glue informed the C adapter. Rust bindings are not linked.
+  The reference Cargo.lock records revision 3a4621b158adef0ca1d82cde79d54ea52a795587.
+- inih by Ben Hoyt; BSD-3-Clause. License is retained in licenses/inih-LICENSE.txt.
+
+Generated core runtime notices:
+- Emscripten authors; MIT / University of Illinois-NCSA license alternatives.
+- musl contributors; MIT and file-specific notices, retained in full.
+- LLVM compiler-rt; Apache-2.0 with LLVM exceptions, per runtime source headers.
+- Doug Lea dlmalloc; public-domain/CC0 release notice retained.
+See licenses/ and THIRD_PARTY.md. This is an attribution inventory, not a
+symbol-complete binary SBOM or an assurance that every SDK component is linked.
+
+Development/deployment tools:
+Playwright is a development dependency (Apache-2.0, with its original NOTICE).
+Node.js and Caddy are external runtime/deployment components, not relicensed
+by the project. Preserve the notices that accompany their distributions.
+
+Source availability:
+Recipients of covered JS/WASM must be told how to obtain the matching
+MPL-covered source. This repository retains native/, CMakeLists.txt, build
+scripts and upstream source. Before deploying to recipients without repository
+access, provide matching source by another reasonable route. Merely pointing
+to an inaccessible private repository does not establish availability.
+
+ROMs, user saves, proprietary game content and third-party trademarks are
+not licensed by the root source license. Owner consent to a private upload
+is not evidence of copyright-holder permission to redistribute game content.
+The project does not claim endorsement from upstream or game rights holders.
+
+Detailed source/license mapping: THIRD_PARTY.md and docs/LICENSING.md.

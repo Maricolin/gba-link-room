@@ -18,6 +18,8 @@ jobs:
           node-version: "22"
       - name: Syntax and layout
         run: node scripts/check.mjs
+      - name: Retained license notices
+        run: node scripts/generate-notices.mjs --check
       - name: Configured game library
         run: node scripts/catalog.mjs
       - name: Unit, protocol, core and security tests

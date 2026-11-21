@@ -4,6 +4,13 @@
 !package.json
 !LICENSE
 !THIRD_PARTY.md
+!NOTICE
+!licenses/
+!licenses/*.txt
+!licenses/README.md
+!licenses/manifest.json
+!docs/
+!docs/LICENSING.md
 !config/
 !config/games.json
 !src/
@@ -11,6 +18,8 @@
 !src/server/*.mjs
 !public/
 !public/index.html
+!public/legal/
+!public/legal/*.html
 !public/js/
 !public/js/**/
 !public/js/**/*.js

@@ -16,6 +16,7 @@ CMakeLists.txt text eol=lf
 *.gb -text -diff
 *.gbc -text -diff
 *.wasm -text -diff
+licenses/*.txt -text
 *.png -text
 *.jpg -text
 *.jpeg -text

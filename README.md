@@ -66,7 +66,7 @@ npm run test:roms
 
 HTTPS 浏览器测试还需要 OpenSSL。详细环境、临时目录及 SDK 构建方法见 [开发文档](<docs/DEVELOPMENT.md>)。测试截图和临时产物保留在本机 artifacts，不随源码提交。
 
-当前验证摘要：Windows/Linux 各51项自动测试；九个实际 ROM 的全部声明人数形成23个基础核心用例，另有6个延长音频用例；同一浏览器连续切换九项并运行渲染通过。该摘要不是完整游戏玩法或公网渗透测试证明，范围见 [验证记录](<docs/VERIFICATION.md>)。
+功能阶段验证摘要：Windows/Linux 各51项自动测试；许可补充后 Windows 完整53项、Linux 新增2项许可测试通过；九个实际 ROM 的全部声明人数形成23个基础核心用例，另有6个延长音频用例；同一浏览器连续切换九项并运行渲染通过。该摘要不是完整游戏玩法或公网渗透测试证明，范围见 [验证记录](<docs/VERIFICATION.md>)。
 
 ## 扩展其他自备游戏
 
@@ -111,6 +111,7 @@ vendor/、reference/         上游源代码、原始参考与许可
 
 ## 文档与迭代
 
+- [许可与分发指引](<docs/LICENSING.md>)、[第三方来源](<THIRD_PARTY.md>)、[NOTICE](<NOTICE>)。
 - [CHANGELOG](<CHANGELOG.md>)：各版本功能、修复与验证摘要。
 - [迭代历史](<docs/ITERATION_HISTORY.md>)：阶段目标、取舍和后续方向；历史开发版本不伪装成已有 Git 提交。
 - [架构与修改入口](<docs/ARCHITECTURE.md>)、[协议](<docs/PROTOCOL.md>)、[配置](<docs/CONFIGURATION.md>)。
@@ -118,4 +119,21 @@ vendor/、reference/         上游源代码、原始参考与许可
 
 ## 来源与许可
 
-参考 tangobattle/mgba-rollback 的确定性协作调度，未接入其 getgud/rollback 会话引擎。源码、mGBA 与相关移植保留 MPL-2.0 及对应上游许可。上游测试 ROM 与本机缓存不属于本次上传清单。详见 [LICENSE](<LICENSE>) 与 [THIRD_PARTY.md](<THIRD_PARTY.md>)；用户 ROM 不适用源码许可证。
+本项目维护代码延续 **[MPL-2.0](<LICENSE>)**。第三方源码、运行库、依赖和素材保留各自原有许可，不能把整个仓库或生成的 JS/WASM 一概标为只有 MPL。归属摘要见 [NOTICE](<NOTICE>)，完整清单见 [THIRD_PARTY.md](<THIRD_PARTY.md>)。
+
+| 来源仓库 | 实际使用方式 | 许可/版本说明 |
+| --- | --- | --- |
+| [mgba-emu/mgba](<https://github.com/mgba-emu/mgba>) | 原始 mGBA 项目及作者来源 | MPL-2.0；保留上游声明 |
+| [tangobattle/mgba](<https://github.com/tangobattle/mgba>) | 本项目实际编译的核心 fork，位于 vendor/mgba | MPL-2.0；commit 81067250ed62f206737b96297fd7693c5295101d |
+| [tangobattle/mgba-rollback](<https://github.com/tangobattle/mgba-rollback>) | 协作 Link 调度移植参考；SIO 测试ROM改写来源 | MPL-2.0；参考 ec6c1364ef02ba2738664bc73999ca19f92cdfd8 |
+| [tangobattle/mgba-rs](<https://github.com/tangobattle/mgba-rs>) | SIO sleep/wake 用户胶水参考，改写为 C 接口 | MPL-2.0；未链接 Rust crate，版本证据见来源表 |
+| [emscripten-core/emscripten](<https://github.com/emscripten-core/emscripten>) | 生成 JS/WASM 的工具链和运行库 | 3.1.69；MIT/NCSA，另含 musl、LLVM 等各自声明 |
+| [benhoyt/inih](<https://github.com/benhoyt/inih>) | 核心配置解析对象 | BSD-3-Clause |
+| [microsoft/playwright](<https://github.com/microsoft/playwright>) | 浏览器测试开发依赖 | playwright-core 1.65.1，Apache-2.0及原始NOTICE |
+| [nodejs/node](<https://github.com/nodejs/node>) / [caddyserver/caddy](<https://github.com/caddyserver/caddy>) | 外部运行时/部署代理，不是本项目自有实现 | Node主许可MIT、Caddy主许可Apache-2.0；发行版附带依赖另依其原文 |
+
+**没有接入 getgud 的 Rust 回滚会话引擎。** reference 中的 Cargo 依赖或 throttler 存档不等于当前运行依赖，不能因此宣称实现预测回滚。公开的 [tangobattle/tango](<https://github.com/tangobattle/tango>) 另有自身GPLv3许可文本，不能因参考仓库提到它就把其实现当成本项目MPL代码。mGBA 随仓的 libpng、zlib、SQLite、LZMA、Discord/RapidJSON及示例也不能一律套用MPL；实际构建范围和原许可路径在第三方清单中逐项说明。
+
+MPL要求在分发受保护源码/可执行形式时保留通知，并按适用条件让接收者取得对应源码。仅在服务器运行未交付的代码，与发送给浏览器的JS/WASM不同。仓库可以保持私有，但应为相关接收者安排可访问的匹配源码或独立源码包，不能把无权限私库链接当作已经提供源码。详细做法与边界见 [许可与分发指引](<docs/LICENSING.md>)、[Mozilla正文](<https://www.mozilla.org/en-US/MPL/2.0/>)和[官方FAQ](<https://www.mozilla.org/en-US/MPL/2.0/FAQ/>)。
+
+本次用户允许上传九项ROM到私有快照，不等于已经核验游戏、汉化/修改版等权利人允许复制或分发。ROM、存档、商标不适用本项目源码许可；私有仓库、署名或访问口令不会自动授予公开下载或商业化权利。对外开放或发布发行包前，须独立确认这些内容的权利范围。
